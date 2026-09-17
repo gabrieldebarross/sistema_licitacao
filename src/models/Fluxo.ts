@@ -1,6 +1,5 @@
 import { DataTypes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
 import { database } from "../config/database.js";
-import TipoProcesso from "./TipoProcesso.js";
 
 class Fluxo extends Model<
     InferAttributes<Fluxo>,
@@ -53,15 +52,5 @@ Fluxo.init(
         underscored: true
     }
 );
-
-TipoProcesso.hasMany(Fluxo, {
-    foreignKey: "tipoProcessoId",
-    as: "fluxos"
-});
-
-Fluxo.belongsTo(TipoProcesso, {
-    foreignKey: "tipoProcesssoId",
-    as: "tipoProcesso"
-});
 
 export default Fluxo;

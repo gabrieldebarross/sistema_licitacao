@@ -1,8 +1,6 @@
 import {DataTypes, Model, InferAttributes, InferCreationAttributes} from "sequelize";
 
 import { database } from "../config/database.js";
-import Processo from "./Processo.js";
-import Etapa from "./Etapa.js";
 
 class ProcessoEtapa extends Model<
     InferAttributes<ProcessoEtapa>,
@@ -108,25 +106,5 @@ ProcessoEtapa.init(
         underscored: true
     }
 );
-
-Processo.hasMany(ProcessoEtapa, {
-    foreignKey: "processoId",
-    as: "etapas"
-});
-
-ProcessoEtapa.belongsTo(Processo, {
-    foreignKey: "processoId",
-    as: "processo"
-});
-
-Etapa.hasMany(ProcessoEtapa, {
-    foreignKey: "etapaId",
-    as: "execucoes"
-});
-
-ProcessoEtapa.belongsTo(Etapa, {
-    foreignKey: "etapaId",
-    as: "etapa"
-});
 
 export default ProcessoEtapa;

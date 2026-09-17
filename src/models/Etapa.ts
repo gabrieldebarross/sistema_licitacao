@@ -1,6 +1,5 @@
 import { DataTypes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
 import { database } from "../config/database.js";
-import Fase from "./Fase.js";
 
 class Etapa extends Model<
     InferAttributes<Etapa>,
@@ -64,15 +63,5 @@ Etapa.init(
         underscored: true
     }
 );
-
-Fase.hasMany(Etapa, {
-    foreignKey: "faseId",
-    as: "etapas"
-});
-
-Etapa.belongsTo(Fase, {
-    foreignKey: "faseId",
-    as: "fase"
-});
 
 export default Etapa;

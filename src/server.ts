@@ -1,5 +1,5 @@
+import "./models/index.js";
 import app from "./app.js"
-import { conectarBanco } from "./config/database.js";
 import { env } from "./config/env.js";
 
 async function IniciarServidor(): Promise<void>{
