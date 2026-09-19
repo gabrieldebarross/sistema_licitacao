@@ -1,4 +1,4 @@
-import {DataTypes, Model, InferAttributes, InferCreationAttributes} from "sequelize";
+import {DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional} from "sequelize";
 
 import { database } from "../config/database.js";
 
@@ -6,7 +6,7 @@ class ProcessoEtapa extends Model<
     InferAttributes<ProcessoEtapa>,
     InferCreationAttributes<ProcessoEtapa>
 > {
-    declare id: number;
+    declare id: CreationOptional<number>;
     declare processoId: number;
     declare etapaId: number;
 
