@@ -1,6 +1,7 @@
 import {DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional} from "sequelize";
 
 import { database } from "../config/database.js";
+import Etapa from "./Etapa.js";
 
 class ProcessoEtapa extends Model<
     InferAttributes<ProcessoEtapa>,
@@ -9,6 +10,7 @@ class ProcessoEtapa extends Model<
     declare id: CreationOptional<number>;
     declare processoId: number;
     declare etapaId: number;
+    declare etapa?: Etapa;
 
     declare status:
         | "PENDENTE"

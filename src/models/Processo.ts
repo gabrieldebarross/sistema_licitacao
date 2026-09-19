@@ -7,6 +7,7 @@ import {
 } from "sequelize";
 
 import { database } from "../config/database.js";
+import ProcessoEtapa from "./ProcessoEtapa.js";
 
 class Processo extends Model<
     InferAttributes<Processo>,
@@ -32,6 +33,11 @@ class Processo extends Model<
     declare dataInicio: Date | null;
     declare dataConclusao: Date | null;
     declare etapaAtualId: number | null;
+
+    /*
+     * Relacionamento carregado através do include.
+     */
+    declare etapas?: ProcessoEtapa[];
 }
 
 Processo.init(
