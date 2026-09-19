@@ -1,4 +1,10 @@
-import { DataTypes, Model,InferAttributes, InferCreationAttributes } from "sequelize";
+import {
+    DataTypes,
+    Model,
+    InferAttributes,
+    InferCreationAttributes,
+    CreationOptional
+} from "sequelize";
 
 import { database } from "../config/database.js";
 
@@ -6,7 +12,8 @@ class Movimentacao extends Model<
     InferAttributes<Movimentacao>,
     InferCreationAttributes<Movimentacao>
 > {
-    declare id: number;
+    declare id: CreationOptional<number>;
+
     declare processoId: number;
     declare processoEtapaId: number | null;
     declare usuarioId: number | null;
@@ -87,6 +94,7 @@ Movimentacao.init(
             field: "data_movimentacao"
         }
     },
+
     {
         sequelize: database,
         tableName: "movimentacoes",
