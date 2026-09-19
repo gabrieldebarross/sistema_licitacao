@@ -1,5 +1,10 @@
 import {
-    Movimentacao
+    Movimentacao,
+    ProcessoEtapa,
+    Usuario,
+    Setor,
+    Etapa,
+    Fase
 } from "../models/index.js";
 
 import {
@@ -67,6 +72,60 @@ class MovimentacaoRepository {
             where: {
                 processoId
             },
+
+            include: [
+                {
+                    model: Usuario,
+                    as: "usuario",
+                    attributes: [
+                        "id",
+                        "nome",
+                        "email",
+                        "perfil"
+                    ]
+                },
+                {
+                    model: Setor,
+                    as: "setor",
+                    attributes: [
+                        "id",
+                        "nome",
+                        "sigla"
+                    ]
+                },
+                {
+                    model: ProcessoEtapa,
+                    as: "processoEtapa",
+                    attributes: [
+                        "id",
+                        "ordem",
+                        "status"
+                    ],
+                    include: [
+                        {
+                            model: Etapa,
+                            as: "etapa",
+                            attributes: [
+                                "id",
+                                "nome",
+                                "ordem"
+                            ],
+                            include: [
+                                {
+                                    model: Fase,
+                                    as: "fase",
+                                    attributes: [
+                                        "id",
+                                        "nome",
+                                        "ordem"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+
             order: [
                 [
                     "dataMovimentacao",

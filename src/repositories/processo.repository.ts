@@ -358,6 +358,33 @@ class ProcessoRepository {
             transaction
         });
     }
+
+    async buscarEtapaPorId(
+        processoId: number,
+        processoEtapaId: number,
+        transaction: Transaction
+    ) {
+        return ProcessoEtapa.findOne({
+            where: {
+                id: processoEtapaId,
+                processoId
+            },
+            include: [
+                {
+                    model: Etapa,
+                    as: "etapa",
+                    include: [
+                        {
+                            model: Fase,
+                            as: "fase"
+                        }
+                    ]
+                }
+            ],
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+    }
 }
 
 export default new ProcessoRepository();
