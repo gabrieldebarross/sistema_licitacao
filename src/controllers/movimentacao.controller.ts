@@ -14,6 +14,10 @@ class MovimentacaoController {
             const processoId =
                 Number(req.params.id);
 
+            /*
+             * 1. Validar ID
+             */
+
             if (
                 !Number.isInteger(processoId) ||
                 processoId <= 0
@@ -24,6 +28,10 @@ class MovimentacaoController {
                         "ID do processo inválido."
                 });
             }
+
+            /*
+             * 2. Buscar histórico
+             */
 
             const movimentacoes =
                 await movimentacaoService.listarPorProcesso(
@@ -45,9 +53,28 @@ class MovimentacaoController {
                     ? erro.message
                     : "Erro interno ao listar movimentações.";
 
-            return res.status(400).json({
+            /*
+             * 3. Processo não encontrado
+             */
+
+            if (
+                mensagem ===
+                "Processo não encontrado."
+            ) {
+                return res.status(404).json({
+                    sucesso: false,
+                    mensagem
+                });
+            }
+
+            /*
+             * 4. Erro interno
+             */
+
+            return res.status(500).json({
                 sucesso: false,
-                mensagem
+                mensagem:
+                    "Erro interno ao listar movimentações."
             });
         }
     }

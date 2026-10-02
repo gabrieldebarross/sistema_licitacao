@@ -3,10 +3,15 @@ import {
     Model,
     InferAttributes,
     InferCreationAttributes,
-    CreationOptional
+    CreationOptional,
+    NonAttribute
 } from "sequelize";
 
 import { database } from "../config/database.js";
+import Usuario from "./Usuario.js";
+import Setor from "./Setor.js";
+import Processo from "./Processo.js";
+import ProcessoEtapa from "./ProcessoEtapa.js";
 
 class Movimentacao extends Model<
     InferAttributes<Movimentacao>,
@@ -33,6 +38,12 @@ class Movimentacao extends Model<
     declare descricao: string;
 
     declare dataMovimentacao: Date;
+
+    // Relacionamentos
+    declare usuario?: NonAttribute<Usuario>;
+    declare setor?: NonAttribute<Setor>;
+    declare processo?: NonAttribute<Processo>;
+    declare processoEtapa?: NonAttribute<ProcessoEtapa>;
 }
 
 Movimentacao.init(

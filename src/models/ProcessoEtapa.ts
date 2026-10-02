@@ -1,16 +1,34 @@
-import {DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional} from "sequelize";
+import {
+    DataTypes,
+    Model,
+    InferAttributes,
+    InferCreationAttributes,
+    CreationOptional,
+    NonAttribute
+} from "sequelize";
 
 import { database } from "../config/database.js";
 import Etapa from "./Etapa.js";
+import Usuario from "./Usuario.js";
+import Setor from "./Setor.js";
 
 class ProcessoEtapa extends Model<
     InferAttributes<ProcessoEtapa>,
     InferCreationAttributes<ProcessoEtapa>
 > {
     declare id: CreationOptional<number>;
+
     declare processoId: number;
     declare etapaId: number;
-    declare etapa?: Etapa;
+
+    /*
+     * Relacionamentos carregados através do include.
+     */
+    declare etapa?: NonAttribute<Etapa>;
+
+    declare responsavel?: NonAttribute<Usuario>;
+
+    declare setorResponsavel?: NonAttribute<Setor>;
 
     declare status:
         | "PENDENTE"
@@ -20,11 +38,17 @@ class ProcessoEtapa extends Model<
         | "PULADA";
 
     declare ordem: number;
+
     declare responsavelId: number | null;
+
     declare setorResponsavelId: number | null;
+
     declare dataInicio: Date | null;
+
     declare dataConclusao: Date | null;
+
     declare prazoPrevisto: Date | null;
+
     declare observacao: string | null;
 }
 

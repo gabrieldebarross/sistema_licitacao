@@ -3,11 +3,15 @@ import {
     Model,
     InferAttributes,
     InferCreationAttributes,
-    CreationOptional
+    CreationOptional,
+    NonAttribute
 } from "sequelize";
 
 import { database } from "../config/database.js";
 import ProcessoEtapa from "./ProcessoEtapa.js";
+import Movimentacao from "./Movimentacao.js";
+import TipoProcesso from "./TipoProcesso.js";
+import Fluxo from "./Fluxo.js";
 
 class Processo extends Model<
     InferAttributes<Processo>,
@@ -35,9 +39,28 @@ class Processo extends Model<
     declare etapaAtualId: number | null;
 
     /*
-     * Relacionamento carregado através do include.
+     * Relacionamentos carregados através do include.
      */
-    declare etapas?: ProcessoEtapa[];
+
+    declare etapas?: NonAttribute<
+        ProcessoEtapa[]
+    >;
+
+    declare etapaAtual?: NonAttribute<
+        ProcessoEtapa
+    >;
+
+    declare movimentacoes?: NonAttribute<
+        Movimentacao[]
+    >;
+
+    declare tipoProcesso?: NonAttribute<
+        TipoProcesso
+    >;
+
+    declare fluxo?: NonAttribute<
+        Fluxo
+    >;
 }
 
 Processo.init(

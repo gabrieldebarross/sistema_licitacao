@@ -5,7 +5,9 @@ import {
     TipoProcesso,
     Fluxo,
     Fase,
-    Etapa
+    Etapa,
+    Usuario,
+    Setor
 } from "../models/index.js";
 
 import { Transaction } from "sequelize";
@@ -182,6 +184,223 @@ class ProcessoRepository {
         });
     }
 
+    async buscarDadosSupervisao(
+        processoId: number
+    ) {
+        return Processo.findByPk(
+            processoId,
+            {
+                include: [
+                    {
+                        model: TipoProcesso,
+                        as: "tipoProcesso",
+                        attributes: [
+                            "id",
+                            "nome",
+                            "descricao"
+                        ]
+                    },
+                    {
+                        model: Fluxo,
+                        as: "fluxo",
+                        attributes: [
+                            "id",
+                            "nome",
+                            "versao",
+                            "descricao",
+                            "ativo"
+                        ]
+                    },
+                    {
+                        model: ProcessoEtapa,
+                        as: "etapas",
+                        attributes: [
+                            "id",
+                            "processoId",
+                            "etapaId",
+                            "status",
+                            "ordem",
+                            "responsavelId",
+                            "setorResponsavelId",
+                            "dataInicio",
+                            "dataConclusao",
+                            "prazoPrevisto",
+                            "observacao"
+                        ],
+                        include: [
+                            {
+                                model: Etapa,
+                                as: "etapa",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "ordem",
+                                    "descricao",
+                                    "prazoGestaoDias",
+                                    "obrigatoria",
+                                    "ativo"
+                                ],
+                                include: [
+                                    {
+                                        model: Fase,
+                                        as: "fase",
+                                        attributes: [
+                                            "id",
+                                            "nome",
+                                            "ordem",
+                                            "descricao",
+                                            "ativo"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                model: Usuario,
+                                as: "responsavel",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "email",
+                                    "perfil",
+                                    "ativo"
+                                ]
+                            },
+                            {
+                                model: Setor,
+                                as: "setorResponsavel",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "sigla",
+                                    "ativo"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Movimentacao,
+                        as: "movimentacoes",
+                        attributes: [
+                            "id",
+                            "processoId",
+                            "processoEtapaId",
+                            "usuarioId",
+                            "setorId",
+                            "tipo",
+                            "descricao",
+                            "dataMovimentacao"
+                        ],
+                        include: [
+                            {
+                                model: Usuario,
+                                as: "usuario",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "email",
+                                    "perfil"
+                                ]
+                            },
+                            {
+                                model: Setor,
+                                as: "setor",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "sigla"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: ProcessoEtapa,
+                        as: "etapaAtual",
+                        attributes: [
+                            "id",
+                            "processoId",
+                            "etapaId",
+                            "status",
+                            "ordem",
+                            "responsavelId",
+                            "setorResponsavelId",
+                            "dataInicio",
+                            "dataConclusao",
+                            "prazoPrevisto",
+                            "observacao"
+                        ],
+                        include: [
+                            {
+                                model: Etapa,
+                                as: "etapa",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "ordem",
+                                    "descricao",
+                                    "prazoGestaoDias",
+                                    "obrigatoria",
+                                    "ativo"
+                                ],
+                                include: [
+                                    {
+                                        model: Fase,
+                                        as: "fase",
+                                        attributes: [
+                                            "id",
+                                            "nome",
+                                            "ordem",
+                                            "descricao",
+                                            "ativo"
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                model: Usuario,
+                                as: "responsavel",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "email",
+                                    "perfil",
+                                    "ativo"
+                                ]
+                            },
+                            {
+                                model: Setor,
+                                as: "setorResponsavel",
+                                attributes: [
+                                    "id",
+                                    "nome",
+                                    "sigla",
+                                    "ativo"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                order: [
+                    [
+                        {
+                            model: ProcessoEtapa,
+                            as: "etapas"
+                        },
+                        "ordem",
+                        "ASC"
+                    ],
+                    [
+                        {
+                            model: Movimentacao,
+                            as: "movimentacoes"
+                        },
+                        "dataMovimentacao",
+                        "DESC"
+                    ]
+                ]
+            }
+        );
+    }
+
     async listar() {
         return Processo.findAll({
             include: [
@@ -256,11 +475,11 @@ class ProcessoRepository {
             ordem: number;
 
             status:
-            | "PENDENTE"
-            | "EM_ANDAMENTO"
-            | "CONCLUIDA"
-            | "BLOQUEADA"
-            | "PULADA";
+                | "PENDENTE"
+                | "EM_ANDAMENTO"
+                | "CONCLUIDA"
+                | "BLOQUEADA"
+                | "PULADA";
 
             dataInicio: Date | null;
             dataConclusao: Date | null;
@@ -318,12 +537,12 @@ class ProcessoRepository {
             descricao: string | null;
 
             status:
-            | "RASCUNHO"
-            | "EM_ANDAMENTO"
-            | "SUSPENSO"
-            | "CONCLUIDO"
-            | "ANULADO"
-            | "REVOGADO";
+                | "RASCUNHO"
+                | "EM_ANDAMENTO"
+                | "SUSPENSO"
+                | "CONCLUIDO"
+                | "ANULADO"
+                | "REVOGADO";
 
             dataInicio: Date | null;
             dataConclusao: Date | null;
