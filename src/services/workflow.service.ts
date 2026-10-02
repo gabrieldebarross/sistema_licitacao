@@ -6,6 +6,37 @@ import usuarioRepository from "../repositories/usuario.repository.js";
 import setorRepository from "../repositories/setor.repository.js";
 
 class WorkflowService {
+    private async validarContextoMovimentacao(
+        usuarioId?: number | null,
+        setorId?: number | null
+    ) {
+        if (usuarioId != null) {
+            const usuario =
+                await usuarioRepository.buscarAtivoPorId(
+                    usuarioId
+                );
+
+            if (!usuario) {
+                throw new Error(
+                    "Usuário da movimentação não encontrado ou está inativo."
+                );
+            }
+        }
+
+        if (setorId != null) {
+            const setor =
+                await setorRepository.buscarAtivoPorId(
+                    setorId
+                );
+
+            if (!setor) {
+                throw new Error(
+                    "Setor da movimentação não encontrado ou está inativo."
+                );
+            }
+        }
+    }
+
     async avancarProcesso(
         processoId: number,
         usuarioId?: number | null,
@@ -14,11 +45,13 @@ class WorkflowService {
         const transaction =
             await database.transaction();
 
+        let transacaoFinalizada = false;
+
         try {
-            /*
-             * 1. Buscar processo dentro da
-             *    transação com lock
-             */
+            await this.validarContextoMovimentacao(
+                usuarioId,
+                setorId
+            );
 
             const processo =
                 await processoRepository.buscarPorId(
@@ -31,10 +64,6 @@ class WorkflowService {
                     "Processo não encontrado."
                 );
             }
-
-            /*
-             * 2. Verificar status do processo
-             */
 
             if (
                 processo.status === "CONCLUIDO" ||
@@ -54,10 +83,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 3. Encontrar etapa atual
-             */
-
             const etapaAtual =
                 processo.etapas?.find(
                     (etapa) =>
@@ -71,10 +96,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 4. Verificar status da etapa
-             */
-
             if (
                 etapaAtual.status !==
                 "EM_ANDAMENTO"
@@ -83,10 +104,6 @@ class WorkflowService {
                     "A etapa atual não está em andamento."
                 );
             }
-
-            /*
-             * 5. Buscar próxima etapa
-             */
 
             const proximaEtapa =
                 await processoRepository.buscarEtapaPorOrdem(
@@ -97,10 +114,6 @@ class WorkflowService {
 
             const agora = new Date();
 
-            /*
-             * 6. Concluir etapa atual
-             */
-
             etapaAtual.status =
                 "CONCLUIDA";
 
@@ -110,10 +123,6 @@ class WorkflowService {
             await etapaAtual.save({
                 transaction
             });
-
-            /*
-             * 7. Registrar movimentação
-             */
 
             await movimentacaoRepository.criar(
                 {
@@ -138,14 +147,8 @@ class WorkflowService {
                     dataMovimentacao:
                         agora
                 },
-
                 transaction
             );
-
-            /*
-             * 8. Se não existe próxima etapa,
-             *    processo foi concluído.
-             */
 
             if (!proximaEtapa) {
                 await processoRepository.atualizar(
@@ -160,7 +163,6 @@ class WorkflowService {
                         etapaAtualId:
                             null
                     },
-
                     transaction
                 );
 
@@ -187,16 +189,11 @@ class WorkflowService {
                         dataMovimentacao:
                             agora
                     },
-
                     transaction
                 );
 
                 await transaction.commit();
-
-                /*
-                 * Recarregar o processo após o commit
-                 * para retornar os dados atualizados.
-                 */
+                transacaoFinalizada = true;
 
                 const processoAtualizado =
                     await processoRepository.buscarPorId(
@@ -215,19 +212,11 @@ class WorkflowService {
                 };
             }
 
-            /*
-             * 9. Iniciar próxima etapa
-             */
-
             proximaEtapa.status =
                 "EM_ANDAMENTO";
 
             proximaEtapa.dataInicio =
                 agora;
-
-            /*
-             * 10. Calcular prazo de gestão
-             */
 
             const prazoGestaoDias =
                 proximaEtapa.etapa
@@ -241,21 +230,19 @@ class WorkflowService {
                     new Date(
                         agora.getTime() +
                         prazoGestaoDias *
-                        24 *
-                        60 *
-                        60 *
-                        1000
+                            24 *
+                            60 *
+                            60 *
+                            1000
                     );
+            } else {
+                proximaEtapa.prazoPrevisto =
+                    null;
             }
 
             await proximaEtapa.save({
                 transaction
             });
-
-            /*
-             * 11. Atualizar etapa atual
-             *     do processo
-             */
 
             await processoRepository.atualizar(
                 processo,
@@ -263,14 +250,8 @@ class WorkflowService {
                     etapaAtualId:
                         proximaEtapa.id
                 },
-
                 transaction
             );
-
-            /*
-             * 12. Registrar início da
-             *     nova etapa
-             */
 
             await movimentacaoRepository.criar(
                 {
@@ -295,20 +276,11 @@ class WorkflowService {
                     dataMovimentacao:
                         agora
                 },
-
                 transaction
             );
 
-            /*
-             * 13. Confirmar transação
-             */
-
             await transaction.commit();
-
-            /*
-             * Recarregar o processo após o commit
-             * para retornar os dados atualizados.
-             */
+            transacaoFinalizada = true;
 
             const processoAtualizado =
                 await processoRepository.buscarPorId(
@@ -326,12 +298,9 @@ class WorkflowService {
                     proximaEtapa
             };
         } catch (erro) {
-            /*
-             * Se qualquer operação falhar,
-             * desfaz tudo.
-             */
-
-            await transaction.rollback();
+            if (!transacaoFinalizada) {
+                await transaction.rollback();
+            }
 
             throw erro;
         }
@@ -347,11 +316,13 @@ class WorkflowService {
         const transaction =
             await database.transaction();
 
+        let transacaoFinalizada = false;
+
         try {
-            /*
-             * 1. Buscar processo dentro da
-             *    transação com lock
-             */
+            await this.validarContextoMovimentacao(
+                usuarioId,
+                setorId
+            );
 
             const processo =
                 await processoRepository.buscarPorId(
@@ -364,10 +335,6 @@ class WorkflowService {
                     "Processo não encontrado."
                 );
             }
-
-            /*
-             * 2. Verificar status do processo
-             */
 
             if (
                 processo.status === "CONCLUIDO" ||
@@ -387,10 +354,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 3. Validar motivo
-             */
-
             if (
                 typeof motivo !== "string" ||
                 motivo.trim().length === 0
@@ -399,10 +362,6 @@ class WorkflowService {
                     "O motivo da devolução é obrigatório."
                 );
             }
-
-            /*
-             * 4. Encontrar etapa atual
-             */
 
             const etapaAtual =
                 processo.etapas?.find(
@@ -417,10 +376,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 5. Verificar status da etapa atual
-             */
-
             if (
                 etapaAtual.status !==
                 "EM_ANDAMENTO"
@@ -429,13 +384,6 @@ class WorkflowService {
                     "A etapa atual não está em andamento."
                 );
             }
-
-            /*
-             * 6. Buscar etapa de destino
-             *
-             * etapaDestinoId é o ID da instância
-             * em processo_etapas.
-             */
 
             const etapaDestino =
                 await processoRepository.buscarEtapaPorId(
@@ -449,11 +397,6 @@ class WorkflowService {
                     "Etapa de destino não encontrada."
                 );
             }
-
-            /*
-             * 7. Verificar se a etapa escolhida
-             *    realmente é anterior à atual.
-             */
 
             if (
                 etapaDestino.id ===
@@ -473,12 +416,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 8. Na primeira versão, somente
-             *    etapas concluídas podem receber
-             *    uma devolução.
-             */
-
             if (
                 etapaDestino.status !==
                 "CONCLUIDA"
@@ -489,11 +426,6 @@ class WorkflowService {
             }
 
             const agora = new Date();
-
-            /*
-             * 9. Devolver a etapa atual para
-             *    PENDENTE
-             */
 
             etapaAtual.status =
                 "PENDENTE";
@@ -511,11 +443,6 @@ class WorkflowService {
                 transaction
             });
 
-            /*
-             * 10. Iniciar novamente a etapa
-             *     de destino
-             */
-
             etapaDestino.status =
                 "EM_ANDAMENTO";
 
@@ -524,11 +451,6 @@ class WorkflowService {
 
             etapaDestino.dataConclusao =
                 null;
-
-            /*
-             * 11. Recalcular prazo da etapa
-             *     de destino
-             */
 
             const prazoGestaoDias =
                 etapaDestino.etapa
@@ -542,10 +464,10 @@ class WorkflowService {
                     new Date(
                         agora.getTime() +
                         prazoGestaoDias *
-                        24 *
-                        60 *
-                        60 *
-                        1000
+                            24 *
+                            60 *
+                            60 *
+                            1000
                     );
             } else {
                 etapaDestino.prazoPrevisto =
@@ -556,11 +478,6 @@ class WorkflowService {
                 transaction
             });
 
-            /*
-             * 12. Atualizar etapa atual
-             *     do processo
-             */
-
             await processoRepository.atualizar(
                 processo,
                 {
@@ -569,10 +486,6 @@ class WorkflowService {
                 },
                 transaction
             );
-
-            /*
-             * 13. Registrar a devolução
-             */
 
             await movimentacaoRepository.criar(
                 {
@@ -597,14 +510,8 @@ class WorkflowService {
                     dataMovimentacao:
                         agora
                 },
-
                 transaction
             );
-
-            /*
-             * 14. Registrar novo início da
-             *     etapa de destino
-             */
 
             await movimentacaoRepository.criar(
                 {
@@ -629,20 +536,11 @@ class WorkflowService {
                     dataMovimentacao:
                         agora
                 },
-
                 transaction
             );
 
-            /*
-             * 15. Confirmar transação
-             */
-
             await transaction.commit();
-
-            /*
-             * Recarregar o processo após o commit
-             * para retornar os dados atualizados.
-             */
+            transacaoFinalizada = true;
 
             const processoAtualizado =
                 await processoRepository.buscarPorId(
@@ -660,12 +558,9 @@ class WorkflowService {
                     etapaDestino
             };
         } catch (erro) {
-            /*
-             * Se qualquer operação falhar,
-             * desfaz tudo.
-             */
-
-            await transaction.rollback();
+            if (!transacaoFinalizada) {
+                await transaction.rollback();
+            }
 
             throw erro;
         }
@@ -682,11 +577,13 @@ class WorkflowService {
         const transaction =
             await database.transaction();
 
+        let transacaoFinalizada = false;
+
         try {
-            /*
-             * 1. Buscar processo dentro da
-             *    transação com lock
-             */
+            await this.validarContextoMovimentacao(
+                usuarioId,
+                setorId
+            );
 
             const processo =
                 await processoRepository.buscarPorId(
@@ -699,10 +596,6 @@ class WorkflowService {
                     "Processo não encontrado."
                 );
             }
-
-            /*
-             * 2. Verificar status do processo
-             */
 
             if (
                 processo.status === "CONCLUIDO" ||
@@ -722,13 +615,6 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 3. Validar responsáveis
-             *
-             * Pelo menos um responsável deve
-             * ser informado.
-             */
-
             if (
                 responsavelId == null &&
                 setorResponsavelId == null
@@ -738,12 +624,8 @@ class WorkflowService {
                 );
             }
 
-            /*
-             * 4. Validar usuário responsável
-             */
-
-            let responsavelNome: string | null =
-                null;
+            let responsavelNome:
+                string | null = null;
 
             if (responsavelId != null) {
                 const responsavel =
@@ -760,10 +642,6 @@ class WorkflowService {
                 responsavelNome =
                     responsavel.nome;
             }
-
-            /*
-             * 5. Validar setor responsável
-             */
 
             let setorResponsavelNome:
                 string | null = null;
@@ -784,10 +662,6 @@ class WorkflowService {
                     setor.nome;
             }
 
-            /*
-             * 6. Buscar etapa dentro do processo
-             */
-
             const etapa =
                 await processoRepository.buscarEtapaPorId(
                     processoId,
@@ -800,12 +674,6 @@ class WorkflowService {
                     "Etapa do processo não encontrada."
                 );
             }
-
-            /*
-             * 7. A atribuição nesta primeira
-             *    versão será feita somente para
-             *    a etapa atualmente em andamento.
-             */
 
             if (
                 etapa.id !==
@@ -827,10 +695,6 @@ class WorkflowService {
 
             const agora = new Date();
 
-            /*
-             * 8. Guardar os responsáveis
-             */
-
             etapa.responsavelId =
                 responsavelId ?? null;
 
@@ -840,10 +704,6 @@ class WorkflowService {
             await etapa.save({
                 transaction
             });
-
-            /*
-             * 9. Montar descrição da movimentação
-             */
 
             let descricao =
                 `Etapa "${etapa.etapa?.nome}" encaminhada.`;
@@ -865,10 +725,6 @@ class WorkflowService {
                 descricao +=
                     ` Setor responsável: ${setorResponsavelNome}.`;
             }
-
-            /*
-             * 10. Registrar movimentação
-             */
 
             await movimentacaoRepository.criar(
                 {
@@ -892,19 +748,11 @@ class WorkflowService {
                     dataMovimentacao:
                         agora
                 },
-
                 transaction
             );
 
-            /*
-             * 11. Confirmar transação
-             */
-
             await transaction.commit();
-
-            /*
-             * Recarregar o processo após o commit
-             */
+            transacaoFinalizada = true;
 
             const processoAtualizado =
                 await processoRepository.buscarPorId(
@@ -918,12 +766,9 @@ class WorkflowService {
                 etapa
             };
         } catch (erro) {
-            /*
-             * Se qualquer operação falhar,
-             * desfaz tudo.
-             */
-
-            await transaction.rollback();
+            if (!transacaoFinalizada) {
+                await transaction.rollback();
+            }
 
             throw erro;
         }
