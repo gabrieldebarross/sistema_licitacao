@@ -1,34 +1,34 @@
 import { Router } from "express";
 
 import workflowController from "../controllers/workflow.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
-const workflowRouter = Router();
+const router = Router();
 
-workflowRouter.post(
+router.use(
+    "/processos",
+    authMiddleware
+);
+
+router.post(
     "/processos/:id/avancar",
-    (req, res) =>
-        workflowController.avancar(
-            req,
-            res
-        )
+    workflowController.avancar.bind(
+        workflowController
+    )
 );
 
-workflowRouter.post(
+router.post(
     "/processos/:id/devolver",
-    (req, res) =>
-        workflowController.devolver(
-            req,
-            res
-        )
+    workflowController.devolver.bind(
+        workflowController
+    )
 );
 
-workflowRouter.post(
+router.post(
     "/processos/:id/etapas/:processoEtapaId/atribuir",
-    (req, res) =>
-        workflowController.atribuir(
-            req,
-            res
-        )
+    workflowController.atribuir.bind(
+        workflowController
+    )
 );
 
-export default workflowRouter;
+export default router;

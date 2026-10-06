@@ -4,6 +4,7 @@ import {
 } from "express";
 
 import workflowService from "../services/workflow.service.js";
+import { RequestAutenticado } from "../types/auth.types.js";
 
 class WorkflowController {
     async avancar(
@@ -11,10 +12,6 @@ class WorkflowController {
         res: Response
     ) {
         try {
-            /*
-             * ID do processo
-             */
-
             const processoId =
                 Number(req.params.id);
 
@@ -29,22 +26,16 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * Usuário e setor são opcionais
-             * neste momento.
-             */
+            const request =
+                req as RequestAutenticado;
 
             const usuarioId =
-                req.body?.usuarioId ??
+                request.usuario?.id ??
                 null;
 
             const setorId =
-                req.body?.setorId ??
+                request.usuario?.setorId ??
                 null;
-
-            /*
-             * Executar workflow
-             */
 
             const resultado =
                 await workflowService.avancarProcesso(
@@ -55,12 +46,9 @@ class WorkflowController {
 
             return res.status(200).json({
                 sucesso: true,
-
                 mensagem:
                     "Processo avançado com sucesso.",
-
-                dados:
-                    resultado
+                dados: resultado
             });
         } catch (erro) {
             console.error(
@@ -85,10 +73,6 @@ class WorkflowController {
         res: Response
     ) {
         try {
-            /*
-             * 1. ID do processo
-             */
-
             const processoId =
                 Number(req.params.id);
 
@@ -103,27 +87,13 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * 2. Dados da devolução
-             */
-
             const etapaDestinoId =
-                Number(req.body?.etapaDestinoId);
+                Number(
+                    req.body?.etapaDestinoId
+                );
 
             const motivo =
                 req.body?.motivo;
-
-            const usuarioId =
-                req.body?.usuarioId ??
-                null;
-
-            const setorId =
-                req.body?.setorId ??
-                null;
-
-            /*
-             * 3. Validar etapa de destino
-             */
 
             if (
                 !Number.isInteger(etapaDestinoId) ||
@@ -136,10 +106,6 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * 4. Validar motivo
-             */
-
             if (
                 typeof motivo !== "string" ||
                 motivo.trim().length === 0
@@ -151,31 +117,31 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * 5. Executar devolução
-             */
+            const request =
+                req as RequestAutenticado;
+
+            const usuarioId =
+                request.usuario?.id ??
+                null;
+
+            const setorId =
+                request.usuario?.setorId ??
+                null;
 
             const resultado =
                 await workflowService.devolverProcesso(
                     processoId,
                     etapaDestinoId,
-                    motivo,
+                    motivo.trim(),
                     usuarioId,
                     setorId
                 );
 
-            /*
-             * 6. Retornar resultado
-             */
-
             return res.status(200).json({
                 sucesso: true,
-
                 mensagem:
                     "Processo devolvido com sucesso.",
-
-                dados:
-                    resultado
+                dados: resultado
             });
         } catch (erro) {
             console.error(
@@ -200,10 +166,6 @@ class WorkflowController {
         res: Response
     ) {
         try {
-            /*
-             * 1. ID do processo
-             */
-
             const processoId =
                 Number(req.params.id);
 
@@ -217,13 +179,6 @@ class WorkflowController {
                         "ID do processo inválido."
                 });
             }
-
-            /*
-             * 2. ID da etapa
-             *
-             * É o ID da instância em
-             * processo_etapas.
-             */
 
             const processoEtapaId =
                 Number(
@@ -243,10 +198,6 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * 3. Dados da atribuição
-             */
-
             const responsavelId =
                 req.body?.responsavelId ??
                 null;
@@ -254,25 +205,6 @@ class WorkflowController {
             const setorResponsavelId =
                 req.body?.setorResponsavelId ??
                 null;
-
-            /*
-             * Usuário e setor que estão
-             * realizando o encaminhamento.
-             */
-
-            const usuarioId =
-                req.body?.usuarioId ??
-                null;
-
-            const setorId =
-                req.body?.setorId ??
-                null;
-
-            /*
-             * 4. Validar responsáveis
-             *
-             * Pelo menos um deve ser informado.
-             */
 
             if (
                 responsavelId == null &&
@@ -285,9 +217,16 @@ class WorkflowController {
                 });
             }
 
-            /*
-             * 5. Executar atribuição
-             */
+            const request =
+                req as RequestAutenticado;
+
+            const usuarioId =
+                request.usuario?.id ??
+                null;
+
+            const setorId =
+                request.usuario?.setorId ??
+                null;
 
             const resultado =
                 await workflowService.atribuirEtapa(
@@ -299,18 +238,11 @@ class WorkflowController {
                     setorId
                 );
 
-            /*
-             * 6. Retornar resultado
-             */
-
             return res.status(200).json({
                 sucesso: true,
-
                 mensagem:
                     "Etapa atribuída com sucesso.",
-
-                dados:
-                    resultado
+                dados: resultado
             });
         } catch (erro) {
             console.error(

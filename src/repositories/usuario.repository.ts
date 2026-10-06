@@ -13,6 +13,14 @@ class UsuarioRepository {
             }
         });
     }
+
+    async buscarPorEmail(email: string) {
+        return Usuario.findOne({
+            where: {
+                email
+            }
+        });
+    }
 }
 
 export default new UsuarioRepository();

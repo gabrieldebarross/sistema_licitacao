@@ -1,25 +1,25 @@
 import { Router } from "express";
 
 import processoController from "../controllers/processo.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
+router.use(
+    "/processos",
+    authMiddleware
+);
+
 router.post(
-    "/",
-    (req, res) =>
-        processoController.criar(req, res)
+    "/processos",
+    processoController.criar.bind(processoController)
 );
 
 router.get(
-    "/",
-    (req, res) =>
-        processoController.listar(req, res)
-);
-
-router.get(
-    "/:id",
-    (req, res) =>
-        processoController.buscarPorId(req, res)
+    "/processos/:id/supervisao",
+    processoController.buscarSupervisao.bind(
+        processoController
+    )
 );
 
 export default router;

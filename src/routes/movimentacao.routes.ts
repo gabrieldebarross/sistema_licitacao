@@ -1,16 +1,16 @@
 import { Router } from "express";
 
 import movimentacaoController from "../controllers/movimentacao.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 
-const movimentacaoRouter = Router();
+const router = Router();
 
-movimentacaoRouter.get(
+router.get(
     "/processos/:id/movimentacoes",
-    (req, res) =>
-        movimentacaoController.listarPorProcesso(
-            req,
-            res
-        )
+    authMiddleware,
+    movimentacaoController.listarPorProcesso.bind(
+        movimentacaoController
+    )
 );
 
-export default movimentacaoRouter;
+export default router;
